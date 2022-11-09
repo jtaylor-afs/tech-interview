@@ -1,5 +1,5 @@
 #!/bin/bash
-
+###
 # Default Variables
 codeid=$((1000 + $RANDOM % 9999))
 domain="code.wooden-proton.com"
@@ -49,6 +49,12 @@ deploy() {
     ## Add in below as options later
     #--subnet-id <subnet-id> \
     #--security-group-ids <security-group-id> <security-group-id>
+    echo "
+    ############################
+    # VM is standing up
+    # Can take up to 5 minutes
+    ############################
+    "
 
     # Store AWS resources to manifest for clean function
     echo "keypair: $codeid.interview" > interview_manifest.yaml
