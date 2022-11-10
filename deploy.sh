@@ -38,11 +38,13 @@ clean() {
 prepare() {
     printf "Preparing configuration files\n"
 
-    sed -i "s/1234/$codeid/g" user_data.sh
-    sed -i "s/Password123/$password/g" user_data.sh
-    sed -i "s/wooden-proton.com/$domain/g" user_data.sh
-    sed -i "s/subdomain/$codeid/g" config/dns_record.json
-    sed -i "s/domain/$domain/g" config/dns_record.json
+    mkdir deployment
+    cp user_data.sh config/dns_record.json deployment/
+    sed -i "s/1234/$codeid/g" deployment/user_data.sh
+    sed -i "s/Password123/$password/g" deployment/user_data.sh
+    sed -i "s/wooden-proton.com/$domain/g" deployment/user_data.sh
+    sed -i "s/subdomain/$codeid/g" deployment/dns_record.json
+    sed -i "s/domain/$domain/g" deployment/dns_record.json
 }
 
 # Create the Route53 record
@@ -57,15 +59,15 @@ route() {
         echo "Hosted Zone already exists... skipping"
     else
         echo "Creating Hosted Zone"
-        aws route53 create-hosted-zone --name $domain --caller-reference $codeid >> deployment.log
+        aws route53 create-hosted-zone --name $domain --caller-reference $codeid >> deployment/deployment.log
         hzid=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Id" --output text)
-        echo "route53: $hzid" >> interview_manifest.yaml
+        echo "route53: $hzid" >> deployment/interview_manifest.yaml
     fi
 
     # Creating new A record for domain
     hzid=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Id" --output text)
-    sed -i "s/192.168.1.1/$1/g" config/dns_record.json
-    aws route53 change-resource-record-sets --hosted-zone-id "$hzid" --change-batch file://config/dns_record.json >> deployment.log
+    sed -i "s/192.168.1.1/$1/g" deployment/dns_record.json
+    aws route53 change-resource-record-sets --hosted-zone-id "$hzid" --change-batch file://deployment/dns_record.json >> deployment/deployment.log
 
 }
 
@@ -78,8 +80,8 @@ deploy() {
     # Create the keypair
     aws ec2 create-key-pair \
     --key-name  $codeid.interview \
-    --query 'KeyMaterial' --output text > $codeid-interview
-    chmod 600 $codeid-interview
+    --query 'KeyMaterial' --output text > deployment/$codeid-interview
+    chmod 600 deployment/$codeid-interview
 
     # Deploy the ec2 instance to default VPC/subnet/secgroup
     aws ec2 run-instances \
@@ -87,15 +89,15 @@ deploy() {
     --image-id "$ami_id" \
     --instance-type $instance_type \
     --key-name $codeid.interview \
-    --user-data file://user_data.sh >> deployment.log
+    --user-data file://deployment/user_data.sh >> deployment/deployment.log
     ## Add in below as options later
     #--subnet-id <subnet-id> \
     #--security-group-ids <security-group-id> <security-group-id>
     public_ip=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
     
     # Store AWS resources to manifest for clean function
-    echo "keypair: $codeid.interview" > interview_manifest.yaml
-    echo "ec2: interview-$codeid" >> interview_manifest.yaml
+    echo "keypair: $codeid.interview" > deployment/interview_manifest.yaml
+    echo "ec2: interview-$codeid" >> deployment/interview_manifest.yaml
     
     # Create Route53 DNS zone and record
     if [ $route = true ]; then
@@ -113,13 +115,13 @@ deploy() {
     and login with your password: $password
 
     To connect to the SSH terminal:
-    ssh -i $codeid-interview ec2-user@$public_ip
+    ssh -i deployment/$codeid-interview ec2-user@$public_ip
     
     When finished with your interview, please tear down your instance:
     ./deploy.sh -c
 
-    A local log of the AWS resources is present in deployment.log
-    The resources that were created are in interview_manifest.yaml
+    A local log of the AWS resources is present in deployment/deployment.log
+    The resources that were created are in deployment/interview_manifest.yaml
     "
 
 }
