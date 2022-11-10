@@ -65,6 +65,7 @@ route() {
     fi
 
     # Creating new A record for domain
+    echo "route arg is $1"
     hzid=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Id" --output text)
     sed -i "s/192.168.1.1/$1/g" deployment/dns_record.json
     aws route53 change-resource-record-sets --hosted-zone-id "$hzid" --change-batch file://deployment/dns_record.json >> deployment/deployment.log
@@ -93,8 +94,10 @@ deploy() {
     ## Add in below as options later
     #--subnet-id <subnet-id> \
     #--security-group-ids <security-group-id> <security-group-id>
-    public_ip=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
     
+    sleep 5
+    public_ip=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
+    echo "deploy var is $public_ip"
     # Store AWS resources to manifest for clean function
     echo "keypair: $codeid.interview" > deployment/interview_manifest.yaml
     echo "ec2: interview-$codeid" >> deployment/interview_manifest.yaml
