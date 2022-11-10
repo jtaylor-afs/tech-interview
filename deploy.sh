@@ -28,7 +28,10 @@ exit 1
 # Clean AWS resources
 clean() {
     # for IDs in manifest, aws delete stuff
-    echo "Cleaning cloud resources"
+    printf "
+    #############################
+    # Cleaning cloud resources
+    #############################\n"
     cat deployment/interview_manifest.yaml | while read line || [[ -n $line ]];
     do
         i=$(echo "$line" | awk '{print $1}')
@@ -36,13 +39,21 @@ clean() {
         # Case statement for the only possibilities
         case $i in
         keypair:)
-            echo "Deleting keypair"
+            echo "Deleting keypair $j"
+            aws ec2 delete-key-pair --key-name "$j"
             ;;
         ec2:)
-            echo "Deleting EC2 instance"
+            echo "Deleting EC2 instance $j"
+            aws ec2 terminate-instances --instance-ids "$j"
             ;;
         hzid:)
-            echo "Deleting Hosted Zone"
+            echo "Deleting Hosted Zone $j"
+            aws route53 delete-hosted-zone --id "$j"
+            ;;
+        record:)
+            echo "Deleting A record for $codeid.$domain"
+            sed -i "s/CREATE/DELETE/g" deployment/dns_record.json
+            aws route53 change-resource-record-sets --hosted-zone-id "$hzid" --change-batch file://deployment/dns_record.json
             ;;
         esac
     done
@@ -83,10 +94,10 @@ route() {
     fi
 
     # Creating new A record for domain
-    echo "route arg is $1"
     hzid=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Id" --output text)
     sed -i "s/192.168.1.1/$1/g" deployment/dns_record.json
     aws route53 change-resource-record-sets --hosted-zone-id "$hzid" --change-batch file://deployment/dns_record.json >> deployment/deployment.log
+    echo "record: true" >> deployment/interview_manifest.yaml
 
 }
 
@@ -96,6 +107,8 @@ deploy() {
     ami_id=$(aws ec2 describe-images --owners amazon --filters 'Name=name,Values=amzn2-ami*' 'Name=state,Values=available' --output json | jq -r '.Images | sort_by(.CreationDate) | last(.[]).ImageId')
     instance_type="t3.large"
 
+    # TODO move keypair to function because it is optional
+    # - also, make it optional
     # Create the keypair
     aws ec2 create-key-pair \
     --key-name  $codeid.interview \
@@ -115,10 +128,10 @@ deploy() {
     
     sleep 5
     public_ip=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
-    echo "deploy var is $public_ip"
     # Store AWS resources to manifest for clean function
+    instance_id=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].InstanceId" --output text)
     echo "keypair: $codeid.interview" > deployment/interview_manifest.yaml
-    echo "ec2: interview-$codeid" >> deployment/interview_manifest.yaml
+    echo "ec2: $instance_id" >> deployment/interview_manifest.yaml
     
     # Create Route53 DNS zone and record
     if [ $route = true ]; then
