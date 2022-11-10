@@ -2,7 +2,7 @@
 ###
 # Default Variables
 codeid=$((1000 + RANDOM % 9999))
-domain="code.wooden-proton.com"
+domain="wooden-proton.com"
 password="Password!23" # password for code-server
 route=true
 
@@ -21,12 +21,14 @@ Flags:
   -c, --clean           Destroys created resources
   -h, --help            Display Help
 "
+exit 1
 }
 
 # Clean AWS resources
 clean() {
     # for IDs in manifest, aws delete stuff
-    echo "X Y and Z were removed"
+    echo "clean cloud resources"
+    echo "clean local resources (keys, log, etc)"
     exit 1
 }
 
@@ -55,7 +57,7 @@ route() {
         echo "Hosted Zone already exists... skipping"
     else
         echo "Creating Hosted Zone"
-        aws route53 create-hosted-zone --name $domain --caller-reference $codeid
+        aws route53 create-hosted-zone --name $domain --caller-reference $codeid >> deployment.log
         hzid=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Id" --output text)
         echo "route53: $hzid" >> interview_manifest.yaml
     fi
@@ -63,7 +65,7 @@ route() {
     # Creating new A record for domain
     hzid=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Id" --output text)
     sed -i "s/192.168.1.1/$1/g" config/dns_record.json
-    aws route53 change-resource-record-sets --hosted-zone-id "$hzid" --change-batch file://config/dns_record.json
+    aws route53 change-resource-record-sets --hosted-zone-id "$hzid" --change-batch file://config/dns_record.json >> deployment.log
 
 }
 
@@ -77,6 +79,7 @@ deploy() {
     aws ec2 create-key-pair \
     --key-name  $codeid.interview \
     --query 'KeyMaterial' --output text > $codeid-interview
+    chmod 600 $codeid-interview
 
     # Deploy the ec2 instance to default VPC/subnet/secgroup
     aws ec2 run-instances \
@@ -84,7 +87,7 @@ deploy() {
     --image-id "$ami_id" \
     --instance-type $instance_type \
     --key-name $codeid.interview \
-    --user-data file://user_data.sh
+    --user-data file://user_data.sh >> deployment.log
     ## Add in below as options later
     #--subnet-id <subnet-id> \
     #--security-group-ids <security-group-id> <security-group-id>
@@ -114,6 +117,9 @@ deploy() {
     
     When finished with your interview, please tear down your instance:
     ./deploy.sh -c
+
+    A local log of the AWS resources is present in deployment.log
+    The resources that were created are in interview_manifest.yaml
     "
 
 }
@@ -141,7 +147,7 @@ flags()
         clean
         ;;
     -h|--help)
-        export help_prompt=true
+        cli_help
         ;;
     esac
 
