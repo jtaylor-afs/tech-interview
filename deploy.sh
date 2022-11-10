@@ -53,6 +53,7 @@ clean() {
         record:)
             echo "Deleting A record for $codeid.$domain"
             sed -i "s/CREATE/DELETE/g" deployment/dns_record.json
+            hzid=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Id" --output text)
             aws route53 change-resource-record-sets --hosted-zone-id "$hzid" --change-batch file://deployment/dns_record.json
             ;;
         esac
