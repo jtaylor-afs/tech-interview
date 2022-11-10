@@ -1,9 +1,10 @@
 #!/bin/bash
 ###
 # Default Variables
-codeid=$((1000 + $RANDOM % 9999))
+codeid=$((1000 + RANDOM % 9999))
 domain="code.wooden-proton.com"
 password="Password!23" # password for code-server
+route=true
 
 # CLI Help
 cli_help() {
@@ -29,6 +30,44 @@ clean() {
     exit 1
 }
 
+# Prepare ec2 user data files
+# These files are used by the user data script which cannot be passed with
+# args so manual preparation here must take place
+prepare() {
+    printf "Preparing configuration files\n"
+
+    sed -i "s/1234/$codeid/g" user_data.sh
+    sed -i "s/Password123/$password/g" user_data.sh
+    sed -i "s/wooden-proton.com/$domain/g" user_data.sh
+    sed -i "s/subdomain/$codeid/g" config/dns_record.json
+    sed -i "s/domain/$domain/g" config/dns_record.json
+}
+
+# Create the Route53 record
+route() {
+    echo "
+    Adding Route53 Zone and Record
+    * please ensure your domain is registered with your AWS account *"
+    
+    # Creating new Hosted Zone only if it does not already exist
+    routeexist=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Name" --output text)
+    if [ "$domain." = "$routeexist" ]; then
+        echo "Hosted Zone already exists... skipping"
+    else
+        echo "Creating Hosted Zone"
+        aws route53 create-hosted-zone --name $domain --caller-reference $codeid
+        hzid=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Id" --output text)
+        echo "route53: $hzid" >> interview_manifest.yaml
+    fi
+
+    # Creating new A record for domain
+    hzid=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Id" --output text)
+    sed -i "s/192.168.1.1/$1/g" config/dns_record.json
+    aws route53 change-resource-record-sets --hosted-zone-id "$hzid" --change-batch file://config/dns_record.json
+
+}
+
+
 # Deploy the ec2 instance
 deploy() {
     ami_id=$(aws ec2 describe-images --owners amazon --filters 'Name=name,Values=amzn2-ami*' 'Name=state,Values=available' --output json | jq -r '.Images | sort_by(.CreationDate) | last(.[]).ImageId')
@@ -42,23 +81,41 @@ deploy() {
     # Deploy the ec2 instance to default VPC/subnet/secgroup
     aws ec2 run-instances \
     --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=interview-$codeid}]" \
-    --image-id $ami_id \
+    --image-id "$ami_id" \
     --instance-type $instance_type \
     --key-name $codeid.interview \
     --user-data file://user_data.sh
     ## Add in below as options later
     #--subnet-id <subnet-id> \
     #--security-group-ids <security-group-id> <security-group-id>
+    public_ip=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
+    
+    # Store AWS resources to manifest for clean function
+    echo "keypair: $codeid.interview" > interview_manifest.yaml
+    echo "ec2: interview-$codeid" >> interview_manifest.yaml
+    
+    # Create Route53 DNS zone and record
+    if [ $route = true ]; then
+        route "$public_ip"
+    fi
+
     echo "
     ############################
     # VM is standing up
     # Can take up to 5 minutes
     ############################
+
+    To connect to your web session navigate to:
+    https://$codeid.$domain
+    and login with your password: $password
+
+    To connect to the SSH terminal:
+    ssh -i $codeid-interview ec2-user@$public_ip
+    
+    When finished with your interview, please tear down your instance:
+    ./deploy.sh -c
     "
 
-    # Store AWS resources to manifest for clean function
-    echo "keypair: $codeid.interview" > interview_manifest.yaml
-    echo "ec2: interview-$codeid" >> interview_manifest.yaml
 }
 
 # CLI Flags
@@ -88,6 +145,7 @@ flags()
         ;;
     esac
 
+    prepare
     deploy
 }
 flags "$@"

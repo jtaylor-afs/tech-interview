@@ -1,0 +1,11 @@
+{
+    "Comment": "CREATE A record for subdomain.domain",
+    "Changes": [{
+    "Action": "CREATE",
+                "ResourceRecordSet": {
+                            "Name": "subdomain.domain",
+                            "Type": "A",
+                            "TTL": 300,
+                         "ResourceRecords": [{ "Value": "192.168.1.1"}]
+}}]
+}
