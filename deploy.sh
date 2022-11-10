@@ -13,11 +13,12 @@ cli_help() {
   echo "
 Usage: $cli_name [command]
 Flags:
-  -d, --domain          Specify Domain
-  -p, --password        Password for VS Code access (optional)
-  -an, --aws-subnet     AWS subnet ID
-  -as, --aws-secgroup   AWS security group
-  -kp, --aws-keypair    AWS Keypair to use (optional)
+  -d, --domain          Specify Domain - must be registered in AWS account
+  -sd, --subdomain      Specifies a subdomain (optional: default random 4 digit)
+  -p, --password        Password for VS Code access (optional: uses default)
+  X-an, --aws-subnet     AWS subnet ID (optional: uses default)
+  X-as, --aws-secgroup   AWS security group (optional: uses default)
+  X-kp, --aws-keypair    AWS Keypair to use (optional: creates new kp)
   -c, --clean           Destroys created resources
   -h, --help            Display Help
 "
@@ -27,7 +28,24 @@ exit 1
 # Clean AWS resources
 clean() {
     # for IDs in manifest, aws delete stuff
-    echo "clean cloud resources"
+    echo "Cleaning cloud resources"
+    cat deployment/interview_manifest.yaml | while read line || [[ -n $line ]];
+    do
+        i=$(echo "$line" | awk '{print $1}')
+        j=$(echo "$line" | awk '{print $2}')
+        # Case statement for the only possibilities
+        case $i in
+        keypair:)
+            echo "Deleting keypair"
+            ;;
+        ec2:)
+            echo "Deleting EC2 instance"
+            ;;
+        hzid:)
+            echo "Deleting Hosted Zone"
+            ;;
+        esac
+    done
     echo "clean local resources (keys, log, etc)"
     exit 1
 }
@@ -135,6 +153,9 @@ flags()
     case "$1" in
     -d|--domain)
         export domain=$2
+        ;;
+    -sd|--subdomain)
+        export codeid=$2
         ;;
     -p|--password)
         export password=$2
