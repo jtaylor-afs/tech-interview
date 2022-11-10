@@ -58,7 +58,10 @@ clean() {
             ;;
         esac
     done
-    echo "clean local resources (keys, log, etc)"
+    printf "#############################
+    # Cleaning local resources
+    #############################\n"
+    rm -rf deployment/
     exit 1
 }
 
