@@ -40,7 +40,6 @@ wget https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt
 chmod +x /home/ec2-user/bin/kubectl
 
 chmod +x /usr/bin/k3s
-chmod +x /usr/bin/kubectl
 
 
 # Start and setup Kubernetes
@@ -53,3 +52,9 @@ cp /etc/rancher/k3s/k3s.yaml /home/ec2-user/.kube/config
 # Setup K8s api access inside VS Code terminal
 sed -i "s/127.0.0.1/$internal_ip/g" /home/ec2-user/.kube/config
 chown -R 1000:1000 /home/ec2-user
+
+printf "
+#############################
+# tech-interview installation
+#        complete 
+#############################\n"

@@ -58,7 +58,8 @@ clean() {
             ;;
         esac
     done
-    printf "#############################
+    printf "
+    #############################
     # Cleaning local resources
     #############################\n"
     rm -rf deployment/
@@ -109,7 +110,7 @@ route() {
 # Deploy the ec2 instance
 deploy() {
     ami_id=$(aws ec2 describe-images --owners amazon --filters 'Name=name,Values=amzn2-ami*' 'Name=state,Values=available' --output json | jq -r '.Images | sort_by(.CreationDate) | last(.[]).ImageId')
-    instance_type="t3.large"
+    instance_type="t3.small"
 
     # TODO move keypair to function because it is optional
     # - also, make it optional
@@ -154,6 +155,8 @@ deploy() {
 
     To connect to the SSH terminal:
     ssh -i deployment/$codeid-interview ec2-user@$public_ip
+    To follow along with the deployment:
+    ssh -i deployment/$codeid-interview ec2-user@$public_ip "sudo tail -f /var/log/cloud-init-output.log"
     
     When finished with your interview, please tear down your instance:
     ./deploy.sh -c
