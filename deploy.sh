@@ -29,9 +29,9 @@ exit 1
 clean() {
     # for IDs in manifest, aws delete stuff
     printf "
-    #############################
-    # Cleaning cloud resources
-    #############################\n"
+#############################
+# Cleaning cloud resources
+#############################\n\n"
     cat deployment/interview_manifest.yaml | while read line || [[ -n $line ]];
     do
         i=$(echo "$line" | awk '{print $1}')
@@ -40,30 +40,30 @@ clean() {
         case $i in
         keypair:)
             echo "Deleting keypair $j"
-            aws ec2 delete-key-pair --key-name "$j"
+            aws ec2 delete-key-pair --key-name "$j" >> deployment/deployment.log
             ;;
         ec2:)
             echo "Deleting EC2 instance $j"
-            aws ec2 terminate-instances --instance-ids "$j"
+            aws ec2 terminate-instances --instance-ids "$j" >> deployment/deployment.log
             ;;
         hzid:)
             echo "Deleting Hosted Zone $j"
-            aws route53 delete-hosted-zone --id "$j"
+            aws route53 delete-hosted-zone --id "$j" >> deployment/deployment.log
             ;;
         record:)
             hzid=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Id" --output text)
             echo "Deleting A record for in $hzid"
             sed -i "s/CREATE/DELETE/g" deployment/dns_record.json
-            aws route53 change-resource-record-sets --hosted-zone-id "$hzid" --change-batch file://deployment/dns_record.json
+            aws route53 change-resource-record-sets --hosted-zone-id "$hzid" --change-batch file://deployment/dns_record.json >> deployment/deployment.log
             ;;
         esac
     done
     printf "
-    #############################
-    # Cleaning local resources
-    #############################\n"
+#############################
+# Cleaning local resources
+#############################\n\n"
     rm -rf deployment/
-    printf "DONE!"
+    printf "DONE!\n\n"
     exit 1
 }
 
@@ -105,7 +105,7 @@ route() {
     fi
 
     # Creating new A record for domain
-    printf 'Creating A record for: %s\n' "$codeid.$domain : $1"
+    printf 'Creating A record for: %s\n\n' "$codeid.$domain : $1"
     hzid=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Id" --output text)
     sed -i "s/192.168.1.1/$1/g" deployment/dns_record.json
     aws route53 change-resource-record-sets --hosted-zone-id "$hzid" --change-batch file://deployment/dns_record.json >> deployment/deployment.log
@@ -137,7 +137,7 @@ deploy() {
     #--security-group-ids <security-group-id> <security-group-id>
     
     sleep 5
-    
+
     public_ip=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
     # Store AWS resources to manifest for clean function
     instance_id=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].InstanceId" --output text)
