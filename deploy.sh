@@ -63,6 +63,7 @@ clean() {
     # Cleaning local resources
     #############################\n"
     rm -rf deployment/
+    printf "DONE!"
     exit 1
 }
 
@@ -72,8 +73,13 @@ clean() {
 prepare() {
     printf "Preparing configuration files\n"
 
+    # Make ephemeral config file location
     mkdir deployment
     cp user_data.sh config/dns_record.json deployment/
+
+    # Apply changes that can me applied early
+    # This has to happen due to these files being used by cloud-init
+    # and passed via the aws cli command so unable to pass variables
     sed -i "s/1234/$codeid/g" deployment/user_data.sh
     sed -i "s/Password123/$password/g" deployment/user_data.sh
     sed -i "s/wooden-proton.com/$domain/g" deployment/user_data.sh
@@ -90,7 +96,7 @@ route() {
     # Creating new Hosted Zone only if it does not already exist
     routeexist=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Name" --output text)
     if [ "$domain." = "$routeexist" ]; then
-        echo "Hosted Zone already exists... skipping"
+        printf "Hosted Zone already exists... skipping\n"
     else
         echo "Creating Hosted Zone"
         aws route53 create-hosted-zone --name $domain --caller-reference $codeid >> deployment/deployment.log
@@ -99,6 +105,7 @@ route() {
     fi
 
     # Creating new A record for domain
+    printf 'Creating A record for: %s\n' "$codeid.$domain : $1"
     hzid=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Id" --output text)
     sed -i "s/192.168.1.1/$1/g" deployment/dns_record.json
     aws route53 change-resource-record-sets --hosted-zone-id "$hzid" --change-batch file://deployment/dns_record.json >> deployment/deployment.log
@@ -112,8 +119,6 @@ deploy() {
     ami_id=$(aws ec2 describe-images --owners amazon --filters 'Name=name,Values=amzn2-ami*' 'Name=state,Values=available' --output json | jq -r '.Images | sort_by(.CreationDate) | last(.[]).ImageId')
     instance_type="t3.small"
 
-    # TODO move keypair to function because it is optional
-    # - also, make it optional
     # Create the keypair
     aws ec2 create-key-pair \
     --key-name  $codeid.interview \
@@ -132,6 +137,7 @@ deploy() {
     #--security-group-ids <security-group-id> <security-group-id>
     
     sleep 5
+    
     public_ip=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
     # Store AWS resources to manifest for clean function
     instance_id=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].InstanceId" --output text)
