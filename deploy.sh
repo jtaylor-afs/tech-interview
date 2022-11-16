@@ -1,7 +1,7 @@
 #!/bin/bash
 ###
 # Default Variables
-codeid=$((1000 + RANDOM % 9999))
+codeid=$((1000 + RANDOM % 8999))
 domain="wooden-proton.com"
 password="Password!23" # password for code-server
 route=true
@@ -174,7 +174,7 @@ deploy() {
     A local log of the AWS resources is present in deployment/deployment.log
     The resources that were created are in deployment/interview_manifest.yaml
     "
-
+    ssh -i tech-interview/deployment/$codeid-interview ec2-user@"$public_ip" sudo tail -f /var/log/passage.log | cut -c1-80
 }
 
 # CLI Flags
@@ -206,6 +206,9 @@ flags()
         clean
         ;;
     -h|--help)
+        cli_help
+        ;;
+    -*)
         cli_help
         ;;
     esac
