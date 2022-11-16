@@ -174,7 +174,8 @@ deploy() {
     A local log of the AWS resources is present in deployment/deployment.log
     The resources that were created are in deployment/interview_manifest.yaml
     "
-    ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no ec2-user@"$public_ip" sudo tail -f /var/log/passage.log | cut -c1-80
+    ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no ec2-user@"$public_ip" "sudo touch /var/log/passage.log"
+    ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no ec2-user@"$public_ip" "sudo tail -f /var/log/passage.log | cut -c1-80"
 }
 
 # CLI Flags
