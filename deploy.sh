@@ -19,6 +19,7 @@ Flags:
   X-an, --aws-subnet     AWS subnet ID (optional: uses default)
   X-as, --aws-secgroup   AWS security group (optional: uses default)
   X-kp, --aws-keypair    AWS Keypair to use (optional: creates new kp)
+  -r53, --route53       Binary (true/false) - enables/disables Route53 propagation
   -c, --clean           Destroys created resources
   -h, --help            Display Help
 "
@@ -139,6 +140,7 @@ deploy() {
     sleep 5
 
     public_ip=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
+    
     # Store AWS resources to manifest for clean function
     instance_id=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].InstanceId" --output text)
     echo "keypair: $codeid.interview" > deployment/interview_manifest.yaml
@@ -147,6 +149,8 @@ deploy() {
     # Create Route53 DNS zone and record
     if [ $route = true ]; then
         route "$public_ip"
+    else
+        echo "record: false" >> deployment/interview_manifest.yaml
     fi
 
     echo "
@@ -187,13 +191,16 @@ flags()
         export password=$2
         ;;
     -as|--aws-secgroup)
-        export subnet=$2
+        export secgroup=$2
         ;;
     -an|--aws-subnet)
         export subnet=$2
         ;;
     -kp|--aws-keypair)
         export keypair=$2
+        ;;
+    -r53|--route53)
+        export route=$2
         ;;
     -c|--clean)
         clean

@@ -16,7 +16,7 @@ sed -i "s/192.168.1.1/$internal_ip/g" /home/ec2-user/tech-interview/config/code.
 
 cp /home/ec2-user/tech-interview/config/code.subdomain.conf /home/ec2-user/letsencrypt/nginx/proxy-confs/code.subdomain.conf
 chown -R 1000:1000 /home/ec2-user/letsencrypt/
-docker run -d   --name=code-server  -e TZ=America/Chicago -e PUID=1000   -e PGID=1000  -e PASSWORD=Password123 -e SUDO_PASSWORD=Password123 -e DEFAULT_WORKSPACE=/config/workspace -p 8443:8443   -v /home/ec2-user/:/config   --restart unless-stopped   lscr.io/linuxserver/code-server:latest
+docker run -d --name=code-server -e TZ=America/Chicago -e PUID=1000 -e PGID=1000 -e PASSWORD=Password123 -e SUDO_PASSWORD=Password123 -e DEFAULT_WORKSPACE=/config/workspace -p 8443:8443 -v /home/ec2-user/:/config --restart unless-stopped lscr.io/linuxserver/code-server:latest
 docker run -d --name=swag --cap-add=NET_ADMIN -e PUID=1000 -e PGID=1000 -e TZ=America/Chicago -e URL=wooden-proton.com -e SUBDOMAINS=1234 -e VALIDATION=http -e EMAIL=jt@conft.io -e DHLEVEL=2048 -e ONLY_SUBDOMAINS=true -e STAGING=false -p 443:443 -p 80:80 -v /home/ec2-user/letsencrypt/:/config --restart unless-stopped linuxserver/swag
 
 # Give VS Code and SWAG time to come up and populate certs
@@ -39,23 +39,17 @@ cp -R /home/ec2-user/kubernetes-katas/ /home/ec2-user/workspace/devops-engineer/
 cp /home/ec2-user/tech-interview/config/settings.json /home/ec2-user/data/User/settings.json
 touch /home/ec2-user/workspace/whiteboard.drawio
 
-# install Live Share extension
-#wget https://gitlab.com/otafablab/rust-code-server/-/blob/main/MS-vsliveshare.vsliveshare-pack-0.4.0.vsix
-
-
-
 # Retrieve K8s binaries
 wget https://github.com/k3s-io/k3s/releases/download/v1.25.3%2Bk3s1/k3s -O /usr/bin/k3s
 wget https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl -O /home/ec2-user/bin/kubectl
 chmod +x /home/ec2-user/bin/kubectl
 
-chmod +x /usr/bin/k3s
+# DELETE: chmod +x /usr/bin/k3s
 
 
 # Start and setup Kubernetes
-#k3s server &
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -
-sleep 60
+# DELETE: sleep 60
 mkdir -p /home/ec2-user/.kube
 cp /etc/rancher/k3s/k3s.yaml /home/ec2-user/.kube/config
 
