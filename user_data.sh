@@ -22,12 +22,22 @@ docker run -d --name=swag --cap-add=NET_ADMIN -e PUID=1000 -e PGID=1000 -e TZ=Am
 # Give VS Code and SWAG time to come up and populate certs
 sleep 20
 
-# Populate default workspaces
+# Install required packages into the code-server
+docker exec code-server sudo apt update
+docker exec code-server sudo apt install python3 pip vim -y
+
+# Populate default workspaces and install extensions
 mkdir -p /home/ec2-user/workspace/devops-engineer /home/ec2-user/workspace/software-engineer /home/ec2-user/bin /home/ec2-user/data/User  /home/ec2-user/extensions
-bsdtar -xvf /home/ec2-user/tech-interview/bin/MS-vsliveshare.vsliveshare-1.0.5762.vsix
+wget https://github.com/jtaylor-afs/tech-interview/releases/download/0.0.1/hediet.vscode-drawio-1.6.4.vsix
+wget https://github.com/jtaylor-afs/tech-interview/releases/download/0.0.1/MS-vsliveshare.vsliveshare-1.0.5762.vsix
+bsdtar -xvf MS-vsliveshare.vsliveshare-1.0.5762.vsix
 mv extension /home/ec2-user/extensions/ms-vsliveshare.vsliveshare-pack-1.0.5762
+bsdtar -xvf hediet.vscode-drawio-1.6.4.vsix
+mv extension /home/ec2-user/extensions/hediet.vscode-drawio-1.6.4-universal
+
 cp -R /home/ec2-user/kubernetes-katas/ /home/ec2-user/workspace/devops-engineer/
 cp /home/ec2-user/tech-interview/config/settings.json /home/ec2-user/data/User/settings.json
+touch /home/ec2-user/workspace/whiteboard.drawio
 
 # install Live Share extension
 #wget https://gitlab.com/otafablab/rust-code-server/-/blob/main/MS-vsliveshare.vsliveshare-pack-0.4.0.vsix
