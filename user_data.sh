@@ -60,6 +60,4 @@ sed -i "s/127.0.0.1/$internal_ip/g" /home/ec2-user/.kube/config
 chown -R 1000:1000 /home/ec2-user
 
 printf "
-############################
-#   installation complete
-############################\n" >> /var/log/passage.log
+***Installation complete ***" >> /var/log/passage.log
