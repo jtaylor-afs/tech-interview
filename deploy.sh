@@ -153,29 +153,27 @@ deploy() {
         echo "record: false" >> deployment/interview_manifest.yaml
     fi
 
-    echo "
-    ############################
-    # VM is standing up
-    # Can take up to 5 minutes
-    ############################
+    echo "    
+###################################################
+Initiating cloud-init script (may be a few minutes)
+"
+    ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no -o LogLevel=error ec2-user@"$public_ip" "sudo touch /var/log/passage.log"
+    ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no ec2-user@"$public_ip" "sh -c 'tail -n +0 -f /var/log/passage.log | { sed "/complete/ q" && kill $$ ;}'"
 
+    echo "
     To connect to your web session navigate to:
     https://$codeid.$domain
     and login with your password: $password
 
     To connect to the SSH terminal:
     ssh -i deployment/$codeid-interview ec2-user@$public_ip
-    To follow along with the deployment:
-    ssh -i deployment/$codeid-interview ec2-user@$public_ip "sudo tail -f /var/log/cloud-init-output.log"
-    
+
     When finished with your interview, please tear down your instance:
     ./deploy.sh -c
 
     A local log of the AWS resources is present in deployment/deployment.log
     The resources that were created are in deployment/interview_manifest.yaml
     "
-    ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no -o LogLevel=error ec2-user@"$public_ip" "sudo touch /var/log/passage.log"
-    ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no ec2-user@"$public_ip" "sudo tail -10f /var/log/passage.log"
 }
 
 # CLI Flags
