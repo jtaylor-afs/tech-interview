@@ -117,7 +117,8 @@ route() {
 
 # Deploy the ec2 instance
 deploy() {
-    ami_id=$(aws ec2 describe-images --owners amazon --filters 'Name=name,Values=amzn2-ami*' 'Name=state,Values=available' --output json | jq -r '.Images | sort_by(.CreationDate) | last(.[]).ImageId')
+    ami_id=$(aws ec2 describe-images --owners amazon --filters 'Name=name,Values=amzn2-ami-ecs-gpu-hvm-*' 'Name=state,Values=available' --output json | jq -r '.Images | sort_by(.CreationDate) | last(.[]).ImageId')
+    #ami_id="ami-0b3fd593b0baca82c"
     instance_type="t3.small"
 
     # Create the keypair
@@ -157,8 +158,8 @@ deploy() {
 ###################################################
 Initiating cloud-init script (may be a few minutes)
 "
-    #ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no -o LogLevel=error ec2-user@"$public_ip" "sudo touch /var/log/passage.log"
-    #ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no ec2-user@"$public_ip" "tail -f /var/log/passage.log | sed '/^complete$/ q'"
+    ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no -o LogLevel=error ec2-user@"$public_ip" "sudo touch /var/log/passage.log"
+    ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no ec2-user@"$public_ip" tail -f /var/log/passage.log
 
     echo "
     To connect to your web session navigate to:

@@ -1,8 +1,10 @@
 #!/bin/bash
 
-echo "Installing apt packages" >> /var/log/passage.log
+echo "Installing yum packages on the host" >> /var/log/passage.log
 yum update -y
-yum install -y git wget unzip bsdtar
+yum install -y git wget unzip bsdtar #docker
+systemctl enable docker
+systemctl start docker
 
 echo "Cloning git repositories" >> /var/log/passage.log
 git clone https://github.com/eficode-academy/kubernetes-katas.git /home/ec2-user/kubernetes-katas
@@ -12,11 +14,12 @@ MAC=$(curl http://169.254.169.254/latest/meta-data/network/interfaces/macs/ | se
 MAC=$(curl http://169.254.169.254/latest/meta-data/network/interfaces/macs/ | sed 's/\///') && export public_ip=$(curl http://169.254.169.254/latest/meta-data/network/interfaces/macs/$MAC/public-ipv4s)
 
 # Start the VS Code server and expose the clear text port
-echo "Starting VS Code" >> /var/log/passage.log
+echo "Starting VS Code and SWAG" >> /var/log/passage.log
 mkdir -p /home/ec2-user/letsencrypt/nginx/proxy-confs/
 sed -i "s/code/1234/g" /home/ec2-user/tech-interview/config/code.subdomain.conf
 sed -i "s/192.168.1.1/$internal_ip/g" /home/ec2-user/tech-interview/config/code.subdomain.conf
 
+# Install docker and
 cp /home/ec2-user/tech-interview/config/code.subdomain.conf /home/ec2-user/letsencrypt/nginx/proxy-confs/code.subdomain.conf
 chown -R 1000:1000 /home/ec2-user/letsencrypt/
 docker run -d --name=code-server -e TZ=America/Chicago -e PUID=1000 -e PGID=1000 -e PASSWORD=Password123 -e SUDO_PASSWORD=Password123 -e DEFAULT_WORKSPACE=/config/workspace -p 8443:8443 -v /home/ec2-user/:/config --restart unless-stopped lscr.io/linuxserver/code-server:latest
@@ -59,5 +62,5 @@ cp /etc/rancher/k3s/k3s.yaml /home/ec2-user/.kube/config
 sed -i "s/127.0.0.1/$internal_ip/g" /home/ec2-user/.kube/config
 chown -R 1000:1000 /home/ec2-user
 
-printf "
-***Installation complete ***" >> /var/log/passage.log
+echo "***Installation complete ***\n" >> /var/log/passage.log
+pkill -f tail
