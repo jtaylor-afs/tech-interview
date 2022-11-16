@@ -157,8 +157,8 @@ deploy() {
 ###################################################
 Initiating cloud-init script (may be a few minutes)
 "
-    ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no -o LogLevel=error ec2-user@"$public_ip" "sudo touch /var/log/passage.log"
-    ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no ec2-user@"$public_ip" "tail -f /var/log/passage.log | sed '/^complete$/ q'"
+    #ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no -o LogLevel=error ec2-user@"$public_ip" "sudo touch /var/log/passage.log"
+    #ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no ec2-user@"$public_ip" "tail -f /var/log/passage.log | sed '/^complete$/ q'"
 
     echo "
     To connect to your web session navigate to:
