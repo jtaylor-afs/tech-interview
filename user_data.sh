@@ -2,9 +2,7 @@
 
 echo "Installing yum packages on the host" >> /var/log/passage.log
 yum update -y
-yum install -y git wget unzip bsdtar #docker
-# systemctl enable docker
-# systemctl start docker
+yum install -y git wget unzip bsdtar
 
 echo "Cloning git repositories" >> /var/log/passage.log
 git clone https://github.com/jtaylor-afs/workspace.git /home/ec2-user/workspace
@@ -18,6 +16,7 @@ echo "Starting VS Code and SWAG" >> /var/log/passage.log
 mkdir -p /home/ec2-user/letsencrypt/nginx/proxy-confs/
 sed -i "s/code/1234/g" /home/ec2-user/tech-interview/config/code.subdomain.conf
 sed -i "s/192.168.1.1/$internal_ip/g" /home/ec2-user/tech-interview/config/code.subdomain.conf
+echo " - Waiting on UI healthcheck" >> /var/log/passage.log
 
 # Install docker and
 cp /home/ec2-user/tech-interview/config/code.subdomain.conf /home/ec2-user/letsencrypt/nginx/proxy-confs/code.subdomain.conf
@@ -26,7 +25,12 @@ docker run -d --name=code-server -e TZ=America/Chicago -e PUID=1000 -e PGID=1000
 docker run -d --name=swag --cap-add=NET_ADMIN -e PUID=1000 -e PGID=1000 -e TZ=America/Chicago -e URL=wooden-proton.com -e SUBDOMAINS=1234 -e VALIDATION=http -e EMAIL=jt@conft.io -e DHLEVEL=2048 -e ONLY_SUBDOMAINS=true -e STAGING=false -p 443:443 -p 80:80 -v /home/ec2-user/letsencrypt/:/config --restart unless-stopped linuxserver/swag
 
 # Give VS Code and SWAG time to come up and populate certs
-sleep 20
+while [[ ${uistatus} != *"200"* ]]; do
+    sleep 1
+    uistatus=$(curl -s --head -m2 --request GET https://1234.wooden-proton.com --connect-to '1234.wooden-proton.com:localhost' -L | grep HTTP)
+done
+echo " - UI up and running and TLS configured" >> /var/log/passage.log
+#sed -i 's/Waiting on UI healthcheck/UI and TLS are up and running/g' /var/log/passage.log
 
 # Install required packages into the code-server
 echo "Installing dependencies for VS Code" >> /var/log/passage.log
