@@ -3,11 +3,11 @@
 echo "Installing yum packages on the host" >> /var/log/passage.log
 yum update -y
 yum install -y git wget unzip bsdtar #docker
-systemctl enable docker
-systemctl start docker
+# systemctl enable docker
+# systemctl start docker
 
 echo "Cloning git repositories" >> /var/log/passage.log
-git clone https://github.com/eficode-academy/kubernetes-katas.git /home/ec2-user/kubernetes-katas
+git clone https://github.com/jtaylor-afs/workspace.git /home/ec2-user/workspace
 git clone https://github.com/jtaylor-afs/tech-interview.git /home/ec2-user/tech-interview
 
 MAC=$(curl http://169.254.169.254/latest/meta-data/network/interfaces/macs/ | sed 's/\///') && export internal_ip=$(curl http://169.254.169.254/latest/meta-data/network/interfaces/macs/$MAC/local-ipv4s)
@@ -35,23 +35,36 @@ docker exec code-server sudo apt install python3 pip vim -y
 
 # Populate default workspaces and install extensions
 echo "Installing VS Code extensions" >> /var/log/passage.log
-mkdir -p /home/ec2-user/workspace/devops-engineer /home/ec2-user/workspace/software-engineer /home/ec2-user/bin /home/ec2-user/data/User  /home/ec2-user/extensions
+mkdir -p /home/ec2-user/bin /home/ec2-user/data/User  /home/ec2-user/extensions
 wget https://github.com/jtaylor-afs/tech-interview/releases/download/0.0.1/hediet.vscode-drawio-1.6.4.vsix
 wget https://github.com/jtaylor-afs/tech-interview/releases/download/0.0.1/MS-vsliveshare.vsliveshare-1.0.5762.vsix
+wget https://github.com/jtaylor-afs/tech-interview/releases/download/0.0.1/golang.Go-0.36.0.vsix
+wget https://github.com/jtaylor-afs/tech-interview/releases/download/0.0.1/ms-python.python-2022.19.13201008.vsix
+wget https://github.com/jtaylor-afs/tech-interview/releases/download/0.0.1/vscjava.vscode-java-pack-0.25.2022110400.vsix
+echo " - Live Share" >> /var/log/passage.log
 bsdtar -xvf MS-vsliveshare.vsliveshare-1.0.5762.vsix
 mv extension /home/ec2-user/extensions/ms-vsliveshare.vsliveshare-pack-1.0.5762
+echo " - Draw.io" >> /var/log/passage.log
 bsdtar -xvf hediet.vscode-drawio-1.6.4.vsix
 mv extension /home/ec2-user/extensions/hediet.vscode-drawio-1.6.4-universal
+echo " - Go" >> /var/log/passage.log
+bsdtar -xvf golang.Go-0.36.0.vsix
+mv extension /home/ec2-user/extensions/golang.Go-0.36.0
+echo " - Python" >> /var/log/passage.log
+bsdtar -xvf ms-python.python-2022.19.13201008.vsix
+mv extension /home/ec2-user/extensions/ms-python.python-2022.19.13201008
+echo " - Java Extension Pack" >> /var/log/passage.log
+bsdtar -xvf vscjava.vscode-java-pack-0.25.2022110400.vsix
+mv extension /home/ec2-user/extensions/vscjava.vscode-java-pack-0.25.2022110400
 
-cp -R /home/ec2-user/kubernetes-katas/ /home/ec2-user/workspace/devops-engineer/
 cp /home/ec2-user/tech-interview/config/settings.json /home/ec2-user/data/User/settings.json
 touch /home/ec2-user/workspace/whiteboard.drawio
 
 # Retrieve K8s binaries
 echo "Installing Kubernetes (K3s)" >> /var/log/passage.log
-wget https://github.com/k3s-io/k3s/releases/download/v1.25.3%2Bk3s1/k3s -O /usr/bin/k3s
 wget https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl -O /home/ec2-user/bin/kubectl
 chmod +x /home/ec2-user/bin/kubectl
+cp /home/ec2-user/bin/kubectl /home/ec2-user/bin/k
 
 # Start and setup Kubernetes
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -
@@ -62,5 +75,5 @@ cp /etc/rancher/k3s/k3s.yaml /home/ec2-user/.kube/config
 sed -i "s/127.0.0.1/$internal_ip/g" /home/ec2-user/.kube/config
 chown -R 1000:1000 /home/ec2-user
 
-echo "***Installation complete ***\n" >> /var/log/passage.log
+printf "\n***Installation complete ***\n" >> /var/log/passage.log
 pkill -f tail

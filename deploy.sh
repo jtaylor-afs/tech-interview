@@ -91,13 +91,14 @@ prepare() {
 # Create the Route53 record
 route() {
     echo "
-    Adding Route53 Zone and Record
-    * please ensure your domain is registered with your AWS account *"
+
+Adding Route53 Zone and Record
+* please ensure your domain is registered with your AWS account *"
     
     # Creating new Hosted Zone only if it does not already exist
     routeexist=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Name" --output text)
     if [ "$domain." = "$routeexist" ]; then
-        printf "Hosted Zone already exists... skipping\n"
+        printf "  Hosted Zone already exists... skipping\n"
     else
         echo "Creating Hosted Zone"
         aws route53 create-hosted-zone --name $domain --caller-reference $codeid >> deployment/deployment.log
@@ -106,7 +107,7 @@ route() {
     fi
 
     # Creating new A record for domain
-    printf 'Creating A record for: %s\n\n' "$codeid.$domain : $1"
+    printf '  Creating A record for: %s\n\n' "$codeid.$domain : $1"
     hzid=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='${domain}.'].Id" --output text)
     sed -i "s/192.168.1.1/$1/g" deployment/dns_record.json
     aws route53 change-resource-record-sets --hosted-zone-id "$hzid" --change-batch file://deployment/dns_record.json >> deployment/deployment.log
@@ -119,7 +120,7 @@ route() {
 deploy() {
     ami_id=$(aws ec2 describe-images --owners amazon --filters 'Name=name,Values=amzn2-ami-ecs-gpu-hvm-*' 'Name=state,Values=available' --output json | jq -r '.Images | sort_by(.CreationDate) | last(.[]).ImageId')
     #ami_id="ami-0b3fd593b0baca82c"
-    instance_type="t3.small"
+    instance_type="t2.small"
 
     # Create the keypair
     aws ec2 create-key-pair \
@@ -128,6 +129,7 @@ deploy() {
     chmod 600 deployment/$codeid-interview
 
     # Deploy the ec2 instance to default VPC/subnet/secgroup
+    printf "Deploying %s ec2 instance\n" "$instance_type"
     aws ec2 run-instances \
     --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=interview-$codeid}]" \
     --image-id "$ami_id" \
@@ -138,11 +140,14 @@ deploy() {
     #--subnet-id <subnet-id> \
     #--security-group-ids <security-group-id> <security-group-id>
     
-    sleep 5
-
-    public_ip=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
+    echo "  Waiting for instance $codeid to come online"
+    while [ -z "$public_ip" ]; do
+        sleep 2
+        public_ip=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
+        echo -en "\r  Public IP: $public_ip"
+    done
     
-    # Store AWS resources to manifest for clean function
+     # Store AWS resources to manifest for clean function
     instance_id=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].InstanceId" --output text)
     echo "keypair: $codeid.interview" > deployment/interview_manifest.yaml
     echo "ec2: $instance_id" >> deployment/interview_manifest.yaml
@@ -157,61 +162,67 @@ deploy() {
     echo "    
 ###################################################
 Initiating cloud-init script (may be a few minutes)
-"
+
+Default AWS cloud-init running"
     ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no -o LogLevel=error ec2-user@"$public_ip" "sudo touch /var/log/passage.log"
     ssh -i deployment/$codeid-interview -o StrictHostKeyChecking=no ec2-user@"$public_ip" tail -f /var/log/passage.log
 
     echo "
-    To connect to your web session navigate to:
-    https://$codeid.$domain
-    and login with your password: $password
+        To connect to your web session navigate to:
+        https://$codeid.$domain
+        and login with your password: $password
 
-    To connect to the SSH terminal:
-    ssh -i deployment/$codeid-interview ec2-user@$public_ip
+        To connect to the SSH terminal:
+        ssh -i deployment/$codeid-interview ec2-user@$public_ip
 
-    When finished with your interview, please tear down your instance:
-    ./deploy.sh -c
+        When finished with your interview, please tear down your instance:
+        ./deploy.sh -c
 
-    A local log of the AWS resources is present in deployment/deployment.log
-    The resources that were created are in deployment/interview_manifest.yaml
-    "
+        A local log of the AWS resources is present in deployment/deployment.log
+        The resources that were created are in deployment/interview_manifest.yaml
+        "
+    exit 0
 }
 
 # CLI Flags
 flags()
 {
-    case "$1" in
-    -d|--domain)
-        export domain=$2
-        ;;
-    -sd|--subdomain)
-        export codeid=$2
-        ;;
-    -p|--password)
-        export password=$2
-        ;;
-    -as|--aws-secgroup)
-        export secgroup=$2
-        ;;
-    -an|--aws-subnet)
-        export subnet=$2
-        ;;
-    -kp|--aws-keypair)
-        export keypair=$2
-        ;;
-    -r53|--route53)
-        export route=$2
-        ;;
-    -c|--clean)
-        clean
-        ;;
-    -h|--help)
-        cli_help
-        ;;
-    -*)
-        cli_help
-        ;;
-    esac
+    while [[ $# -gt 0 ]]
+    do
+        case "$1" in
+        -d|--domain)
+            export domain=$2
+            ;;
+        -sd|--subdomain)
+            export codeid=$2
+            ;;
+        -p|--password)
+            export password=$2
+            ;;
+        -as|--aws-secgroup)
+            export secgroup=$2
+            ;;
+        -an|--aws-subnet)
+            export subnet=$2
+            ;;
+        -kp|--aws-keypair)
+            export keypair=$2
+            ;;
+        -r53|--route53)
+            export route=$2
+            ;;
+        -c|--clean)
+            clean
+            ;;
+        -h|--help)
+            cli_help
+            ;;
+        -*)
+            cli_help
+            ;;
+        esac
+        shift
+    done
 
     prepare
     deploy
