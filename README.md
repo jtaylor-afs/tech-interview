@@ -9,6 +9,13 @@ A potential candidate can do anything from compiling and running applications to
 ## Deploying
 tech-interview is a simple bash script that only requires the user to already have aws cli installed and configured for access to the target environment. The script deploys an ec2 instance, configures K3s for Kubernetes runtime, deploys VS Code web UI and TLS via local containers, and sets up Route53 with necessary Hosted Zone and DNS record.
 
+### Prerequistes
+| Requirement | Description |
+|---|---|
+| aws cli | the bash script relies on aws cli configured and working on the host handling the script |
+| aws resources | currently, the script relies on default VPC/Sec Group/Subnet. They should be accessible (permitted inbound rules to at least 80/443 (80 is necessary for LetsEncrypt certificate chanllenge process) |
+| domain name | a domain name is required for LetsEncrypt. There is an option to ignore route53 and domain-related tasks but not having trusted signed certs breaks the useful components of VS Code |
+
 Help output:
 ```
 jtaylor@ubuntu-server:~/work/git/tech-interview$ bash deploy.sh -h
