@@ -5,7 +5,8 @@ codeid=$((1000 + RANDOM % 8999))
 domain="wooden-proton.com"
 password="Password!23" # password for code-server
 route=true
-
+ami_id=$(aws ec2 describe-images --owners amazon --filters 'Name=name,Values=amzn2-ami-ecs-gpu-hvm-*' 'Name=state,Values=available' --output json | jq -r '.Images | sort_by(.CreationDate) | last(.[]).ImageId')
+instance_type="t2.small"
 # CLI Help
 cli_help() {
   cli_name=${0##*/}
@@ -16,6 +17,8 @@ Flags:
   -d, --domain          Specify Domain - must be registered in AWS account
   -sd, --subdomain      Specifies a subdomain (optional: default random 4 digit)
   -p, --password        Password for VS Code access (optional: uses default)
+  -ami, --ami           AMI must have docker pre-installed (optional: default ecs gpu hvm)
+  -in, --instance-type  AWS instance type (optional: default t2.small)
   X-an, --aws-subnet     AWS subnet ID (optional: uses default)
   X-as, --aws-secgroup   AWS security group (optional: uses default)
   X-kp, --aws-keypair    AWS Keypair to use (optional: creates new kp)
@@ -118,9 +121,6 @@ Adding Route53 Zone and Record
 
 # Deploy the ec2 instance
 deploy() {
-    ami_id=$(aws ec2 describe-images --owners amazon --filters 'Name=name,Values=amzn2-ami-ecs-gpu-hvm-*' 'Name=state,Values=available' --output json | jq -r '.Images | sort_by(.CreationDate) | last(.[]).ImageId')
-    #ami_id="ami-0b3fd593b0baca82c"
-    instance_type="t2.small"
 
     # Create the keypair
     aws ec2 create-key-pair \
@@ -201,6 +201,12 @@ flags()
             ;;
         -as|--aws-secgroup)
             export secgroup=$2
+            ;;
+        -ami|--ami)
+            export ami_id=$2
+            ;;
+        -in|--instance-type)
+            export instance_type=$2
             ;;
         -an|--aws-subnet)
             export subnet=$2

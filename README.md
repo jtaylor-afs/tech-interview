@@ -2,7 +2,9 @@
 
 This project is IaC that stands up a VM (AWS ec2 instance supported initially), deploys VS Code server with a custom configuration that makes it ready for sharing with interview candidates, and deploys a SWAG (https://fleet.linuxserver.io/image?name=linuxserver/swag) to use LetsEncrypt and provide certificate management.
 
-This tool is intended to enable interviewing or training for DevOps Engineers and Software Engineers.
+This tool is intended to enable interviewing or training for DevOps Engineers and Software Engineers. Out of the box, it provides a shared whiteboard capability (via a draw.io plugin), VS Code Live Share with shared terminal, a provisioned and preconfigured Kubernetes (k3s) cluster accessible via the shared terminal, and a series of predefined scenarios for candidates to attempt (https://github.com/jtaylor-afs/workspace) along with the language runtimes required.
+
+A potential candidate can do anything from compiling and running applications to deploying and exposing applications in the Kubernetes environment.
 
 ## Deploying
 tech-interview is a simple bash script that only requires the user to already have aws cli installed and configured for access to the target environment. The script deploys an ec2 instance, configures K3s for Kubernetes runtime, deploys VS Code web UI and TLS via local containers, and sets up Route53 with necessary Hosted Zone and DNS record.
@@ -11,16 +13,19 @@ Help output:
 ```
 jtaylor@ubuntu-server:~/work/git/tech-interview$ bash deploy.sh -h
 
-Usage: deploy.sh [command]
+Usage: $cli_name [command]
 Flags:
   -d, --domain          Specify Domain - must be registered in AWS account
   -sd, --subdomain      Specifies a subdomain (optional: default random 4 digit)
   -p, --password        Password for VS Code access (optional: uses default)
+  -ami, --ami           AMI must have docker pre-installed (optional: default ecs gpu hvm)
+  -in, --instance-type  AWS instance type (optional: default t2.small)
   X-an, --aws-subnet     AWS subnet ID (optional: uses default)
   X-as, --aws-secgroup   AWS security group (optional: uses default)
   X-kp, --aws-keypair    AWS Keypair to use (optional: creates new kp)
+  -r53, --route53       Binary (true/false) - enables/disables Route53 propagation
   -c, --clean           Destroys created resources
-  -h, --help            Display Help
+  -h, --help            Display Help+0
 ```
 
 Typical deployment:
