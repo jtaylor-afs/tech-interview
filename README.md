@@ -14,7 +14,7 @@ tech-interview is a simple bash script that only requires the user to already ha
 |---|---|
 | aws cli | the bash script relies on aws cli configured and working on the host handling the script |
 | aws resources | currently, the script relies on default VPC/Sec Group/Subnet. They should be accessible (permitted inbound rules to at least 80/443 (80 is necessary for LetsEncrypt certificate chanllenge process) |
-| domain name | a domain name is required for LetsEncrypt. There is an option to ignore route53 and domain-related tasks but not having trusted signed certs breaks the useful components of VS Code |
+| domain name | a domain name is required for LetsEncrypt. There is an option to ignore route53 and domain-related tasks but not having trusted signed certs breaks the useful components of VS Code. The domain used must be registered in AWS Route53.
 
 Help output:
 ```
@@ -35,47 +35,67 @@ Flags:
   -h, --help            Display Help+0
 ```
 
-Typical deployment:
+### Script options
+| Flag | Description | Default |
+|---|---|---|
+| domain | the domain name to use for your instance. All instances get a configurable subdomain | wooden-proton.com |
+| subdomain | specific subdomain for your particular instance. You can have many deployments with the same domain but different subdomains | random 4 numbers |
+| password | password for VS Code UI access | Password!23 |
+| ami | ami ID to use for your VS Code server instance. This AMI must be RHEL based and have docker installed | Amazon Linux 2 ECS-optimized  |
+| instance type | AWS instance type. Should choose a larger instance if intending on running large Kubernetes workloads or intense applications but default works for general usage | t2.small |
+| route53 | currently required to be true. If false, TLS will not get set up. Code server would still be reachable on a non-TLS port but most usability breaks with VS Code without TLS | true |
+| clean | destroys all created AWS resources and locally created ones | - |
+
+### Typical deployment:
 ```
 jtaylor@ubuntu-server:~/work/git/tech-interview$ bash deploy.sh -d wooden-proton.com -p mypassword
 Preparing configuration files
+Deploying t2.small ec2 instance
+  Waiting for instance 6084 to come online
+  Public IP: 35.91.147.78
 
-    Adding Route53 Zone and Record
-    * please ensure your domain is registered with your AWS account *
-Hosted Zone already exists... skipping
-Creating A record for: 6597.wooden-proton.com : 35.86.197.95
+Adding Route53 Zone and Record
+* please ensure your domain is registered with your AWS account *
+  Hosted Zone already exists... skipping
+  Creating A record for: 6084.wooden-proton.com : 35.91.147.78
 
-    ############################
-    # VM is standing up
-    # Can take up to 5 minutes
-    ############################
+###################################################
+Initiating cloud-init script (may be a few minutes)
 
-    To connect to your web session navigate to:
-    https://6597.wooden-proton.com
-    and login with your password: mypassword
+Default AWS cloud-init running
+Installing yum packages on the host
+Cloning git repositories
+Starting VS Code and SWAG
+ - Waiting on UI healthcheck
+ - UI up and running and TLS configured
+Installing dependencies for VS Code
+Installing VS Code extensions
+ - Live Share
+ - Draw.io
+ - Go
+ - Python
+ - Java Extension Pack
+Installing Kubernetes (K3s)
 
-    To connect to the SSH terminal:
-    ssh -i deployment/6597-interview ec2-user@35.86.197.95
-    To follow along with the deployment:
-    ssh -i deployment/6597-interview ec2-user@35.86.197.95 sudo tail -f /var/log/cloud-init-output.log
+***Installation complete ***
 
-    When finished with your interview, please tear down your instance:
-    ./deploy.sh -c
+        To connect to your web session navigate to:
+        https://6084.wooden-proton.com
+        and login with your password: mypassword
 
-    A local log of the AWS resources is present in deployment/deployment.log
-    The resources that were created are in deployment/interview_manifest.yaml
+        To connect to the SSH terminal:
+        ssh -i deployment/6084-interview ec2-user@35.91.147.78
+
+        When finished with your interview, please tear down your instance:
+        ./deploy.sh -c
+
+        A local log of the AWS resources is present in deployment/deployment.log
+        The resources that were created are in deployment/interview_manifest.yaml
 ```
 
 ## Accessing
 
-The deployment takes about 5 minutes and runs as a cloud-init script. If you run the SSH line above, it will output in real time the output of the script. It is complete and ready for use once you see this text:
-```
-#############################
-# tech-interview installation
-#        complete
-#############################
-Cloud-init v. 19.3-45.amzn2 finished at Tue, 15 Nov 2022 20:51:01 +0000. Datasource DataSourceEc2.  Up 297.36 seconds
-```
+The deployment takes about 5 minutes and runs as a cloud-init script. 
 
 Now you can navigate to the url in your browser and login with your password. If you did not set one, it will default to **Password!23**.
 
@@ -83,4 +103,31 @@ Once you are logged into code-server, click on the Live Server icon in the left 
 <insert image here>
 
 Now you just need to share this link with the candidate and you will be on a live VS Code server with Kubernetes running and available. You can bring up a shared terminal and just start running **kubectl** commands.
+
 ## Interviewing
+This tool currently provides interviewing capability for DevOps Engineer and Software Engineer
+
+### DevOps Engineer
+
+### Software Engineer
+
+## Cleanup
+Simply run the script again but with the `-c` flag and the deployer will clean up all cloud and local resources that were created:
+
+```
+jtaylor@ubuntu-server:~/work/git/tech-interview$ bash deploy.sh -c
+
+#############################
+# Cleaning cloud resources
+#############################
+
+Deleting keypair 6084.interview
+Deleting EC2 instance i-0040f154ce3f12d6f
+Deleting A record for in /hostedzone/Z04650833EMSRFIZAQDWN
+
+#############################
+# Cleaning local resources
+#############################
+
+DONE!
+```

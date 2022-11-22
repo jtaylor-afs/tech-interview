@@ -142,6 +142,7 @@ deploy() {
     
     echo "  Waiting for instance $codeid to come online"
     while [ -z "$public_ip" ]; do
+        echo -en "\r  Public IP: < waiting >"
         sleep 2
         public_ip=$(aws ec2 describe-instances --filters Name=tag-value,Values=interview-$codeid Name=instance-state-name,Values=running --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
         echo -en "\r  Public IP: $public_ip"
