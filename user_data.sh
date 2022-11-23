@@ -18,7 +18,7 @@ sed -i "s/code/1234/g" /home/ec2-user/tech-interview/config/code.subdomain.conf
 sed -i "s/192.168.1.1/$internal_ip/g" /home/ec2-user/tech-interview/config/code.subdomain.conf
 echo " - Waiting on UI healthcheck" >> /var/log/passage.log
 
-# Install docker and
+# Install docker and SWAG (lets encypt and nginx proxy)
 cp /home/ec2-user/tech-interview/config/code.subdomain.conf /home/ec2-user/letsencrypt/nginx/proxy-confs/code.subdomain.conf
 chown -R 1000:1000 /home/ec2-user/letsencrypt/
 docker run -d --name=code-server -e DOCKER_MODS="linuxserver/mods:code-server-python3|linuxserver/mods:code-server-golang|linuxserver/mods:code-server-java11|linuxserver/mods:code-server-powershell" -e TZ=America/Chicago -e PUID=1000 -e PGID=1000 -e PASSWORD=Password123 -e SUDO_PASSWORD=Password123 -e DEFAULT_WORKSPACE=/config/workspace -p 8443:8443 -v /home/ec2-user/:/config --restart unless-stopped lscr.io/linuxserver/code-server:latest
@@ -33,18 +33,20 @@ echo " - UI up and running and TLS configured" >> /var/log/passage.log
 #sed -i 's/Waiting on UI healthcheck/UI and TLS are up and running/g' /var/log/passage.log
 
 # Install required packages into the code-server
-#echo "Installing dependencies for VS Code" >> /var/log/passage.log
+# commented out due to linuxserver.io's DOCKERMODS fucntionality which
+# allows for modding the image with additional layers (python, java, etc)
 #docker exec code-server sudo apt update
 #docker exec code-server sudo apt install python3 pip vim -y
 
 # Populate default workspaces and install extensions
 echo "Installing VS Code extensions" >> /var/log/passage.log
 mkdir -p /home/ec2-user/bin /home/ec2-user/data/User  /home/ec2-user/extensions
-wget https://github.com/jtaylor-afs/tech-interview/releases/download/0.0.1/hediet.vscode-drawio-1.6.4.vsix
-wget https://github.com/jtaylor-afs/tech-interview/releases/download/0.0.1/MS-vsliveshare.vsliveshare-1.0.5762.vsix
-wget https://github.com/jtaylor-afs/tech-interview/releases/download/0.0.1/golang.Go-0.36.0.vsix
-wget https://github.com/jtaylor-afs/tech-interview/releases/download/0.0.1/ms-python.python-2022.19.13201008.vsix
-wget https://github.com/jtaylor-afs/tech-interview/releases/download/0.0.1/vscjava.vscode-java-pack-0.25.2022110400.vsix
+ti_version="0.0.1"
+wget https://github.com/jtaylor-afs/tech-interview/releases/download/$ti_version/hediet.vscode-drawio-1.6.4.vsix
+wget https://github.com/jtaylor-afs/tech-interview/releases/download/$ti_version/MS-vsliveshare.vsliveshare-1.0.5762.vsix
+wget https://github.com/jtaylor-afs/tech-interview/releases/download/$ti_version/golang.Go-0.36.0.vsix
+wget https://github.com/jtaylor-afs/tech-interview/releases/download/$ti_version/ms-python.python-2022.19.13201008.vsix
+wget https://github.com/jtaylor-afs/tech-interview/releases/download/$ti_version/vscjava.vscode-java-pack-0.25.2022110400.vsix
 echo " - Live Share" >> /var/log/passage.log
 bsdtar -xvf MS-vsliveshare.vsliveshare-1.0.5762.vsix
 mv extension /home/ec2-user/extensions/ms-vsliveshare.vsliveshare-pack-1.0.5762
@@ -74,6 +76,10 @@ cp /home/ec2-user/bin/kubectl /home/ec2-user/bin/k
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--disable=traefik" sh -
 mkdir -p /home/ec2-user/.kube
 cp /etc/rancher/k3s/k3s.yaml /home/ec2-user/.kube/config
+
+# Prepare DevOps Engineer questions
+kubectl create ns question2
+kubectl apply -n question2 -f /home/ec2-user/tech-interview/config/k8s-question2.yaml
 
 # Setup K8s api access inside VS Code terminal
 sed -i "s/127.0.0.1/$internal_ip/g" /home/ec2-user/.kube/config
