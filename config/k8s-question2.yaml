@@ -57,26 +57,6 @@ spec:
             memory: "32Mi"
             cpu: "50m"
 ---
-apiVersion: v1
-kind: Pod
-metadata:
-  name: mywebapp3
-  labels:
-    name: mywebapp3
-spec:
-  containers:
-  - name: mywebapp3
-    image: nginx:latest
-    resources:
-      limits:
-        memory: "128Mi"
-        cpu: "500m"
-      requests:
-        memory: "32Mi"
-        cpu: "50m"
-    ports:
-      - containerPort: 80
----
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -103,7 +83,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: mywebapp4
-        image: nginx:latest
+        image: nginx:1.14.2
         resources:
           limits:
             memory: 200Mi
@@ -111,3 +91,23 @@ spec:
           requests:
             memory: "32Mi"
             cpu: "50m"
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mywebapp3
+  labels:
+    name: mywebapp3
+spec:
+  containers:
+  - name: mywebapp3
+    image: nginx:1.14.2
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+      requests:
+        memory: "32Mi"
+        cpu: "50m"
+    ports:
+      - containerPort: 80

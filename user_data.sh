@@ -21,7 +21,7 @@ echo " - Waiting on UI healthcheck" >> /var/log/passage.log
 # Install docker and SWAG (lets encypt and nginx proxy)
 cp /home/ec2-user/tech-interview/config/code.subdomain.conf /home/ec2-user/letsencrypt/nginx/proxy-confs/code.subdomain.conf
 chown -R 1000:1000 /home/ec2-user/letsencrypt/
-docker run -d --name=code-server -e DOCKER_MODS="linuxserver/mods:code-server-python3|linuxserver/mods:code-server-golang|linuxserver/mods:code-server-java11|linuxserver/mods:code-server-powershell" -e TZ=America/Chicago -e PUID=1000 -e PGID=1000 -e PASSWORD=Password123 -e SUDO_PASSWORD=Password123 -e DEFAULT_WORKSPACE=/config/workspace -p 8443:8443 -v /home/ec2-user/:/config --restart unless-stopped lscr.io/linuxserver/code-server:latest
+docker run -d --name=code-server -e DOCKER_MODS='linuxserver/mods:code-server-docker|linuxserver/mods:code-server-extension-arguments' -e VSCODE_EXTENSION_IDS='hediet.vscode-drawio|golang.Go|ms-vsliveshare.vsliveshare|ms-python.python|vscjava.vscode-java-pack|ms-kubernetes-tools.vscode-kubernetes-tools' -e EXTENSIONS_GALLERY='{"serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery", "cacheUrl": "https://vscode.blob.core.windows.net/gallery/index", "itemUrl": "https://marketplace.visualstudio.com/items"}' -e TZ=America/Chicago -e PUID=1000 -e PGID=1000 -e PASSWORD=Password123 -e SUDO_PASSWORD=Password123 -e DEFAULT_WORKSPACE=/config/workspace -p 8443:8443 -v /home/ec2-user/:/config --restart unless-stopped lscr.io/linuxserver/code-server:latest
 docker run -d --name=swag --cap-add=NET_ADMIN -e PUID=1000 -e PGID=1000 -e TZ=America/Chicago -e URL=wooden-proton.com -e SUBDOMAINS=1234 -e VALIDATION=http -e EMAIL=jt@conft.io -e DHLEVEL=2048 -e ONLY_SUBDOMAINS=true -e STAGING=false -p 443:443 -p 80:80 -v /home/ec2-user/letsencrypt/:/config --restart unless-stopped linuxserver/swag
 
 # Give VS Code and SWAG time to come up and populate certs
@@ -33,36 +33,19 @@ echo " - UI up and running and TLS configured" >> /var/log/passage.log
 #sed -i 's/Waiting on UI healthcheck/UI and TLS are up and running/g' /var/log/passage.log
 
 # Install required packages into the code-server
-# commented out due to linuxserver.io's DOCKERMODS fucntionality which
-# allows for modding the image with additional layers (python, java, etc)
-#docker exec code-server sudo apt update
-#docker exec code-server sudo apt install python3 pip vim -y
+# install vim - needed for `kubectl edit` interaction
+docker exec code-server sudo apt update
+docker exec code-server sudo apt install vim -y
 
-# Populate default workspaces and install extensions
-echo "Installing VS Code extensions" >> /var/log/passage.log
+# Setup SSH access from code-server to node
 mkdir -p /home/ec2-user/bin /home/ec2-user/data/User  /home/ec2-user/extensions
-ti_version="0.0.1"
-wget https://github.com/jtaylor-afs/tech-interview/releases/download/$ti_version/hediet.vscode-drawio-1.6.4.vsix
-wget https://github.com/jtaylor-afs/tech-interview/releases/download/$ti_version/MS-vsliveshare.vsliveshare-1.0.5762.vsix
-wget https://github.com/jtaylor-afs/tech-interview/releases/download/$ti_version/golang.Go-0.36.0.vsix
-wget https://github.com/jtaylor-afs/tech-interview/releases/download/$ti_version/ms-python.python-2022.19.13201008.vsix
-wget https://github.com/jtaylor-afs/tech-interview/releases/download/$ti_version/vscjava.vscode-java-pack-0.25.2022110400.vsix
-echo " - Live Share" >> /var/log/passage.log
-bsdtar -xvf MS-vsliveshare.vsliveshare-1.0.5762.vsix
-mv extension /home/ec2-user/extensions/ms-vsliveshare.vsliveshare-pack-1.0.5762
-echo " - Draw.io" >> /var/log/passage.log
-bsdtar -xvf hediet.vscode-drawio-1.6.4.vsix
-mv extension /home/ec2-user/extensions/hediet.vscode-drawio-1.6.4-universal
-echo " - Go" >> /var/log/passage.log
-bsdtar -xvf golang.Go-0.36.0.vsix
-mv extension /home/ec2-user/extensions/golang.Go-0.36.0
-echo " - Python" >> /var/log/passage.log
-bsdtar -xvf ms-python.python-2022.19.13201008.vsix
-mv extension /home/ec2-user/extensions/ms-python.python-2022.19.13201008
-echo " - Java Extension Pack" >> /var/log/passage.log
-bsdtar -xvf vscjava.vscode-java-pack-0.25.2022110400.vsix
-mv extension /home/ec2-user/extensions/vscjava.vscode-java-pack-0.25.2022110400
+ssh-keygen -f /home/ec2-user/mykey -N ""
+cat /home/ec2-user/mykey.pub >> /home/ec2-user/.ssh/authorized_keys
+touch /home/ec2-user/bin/shell
+echo "ssh -i /config/mykey -o stricthostkeychecking=no ec2-user@$internal_ip" > /home/ec2-user/bin/shell
+chmod +x /home/ec2-user/bin/shell
 
+# Setting up default code-server settings
 cp /home/ec2-user/tech-interview/config/settings.json /home/ec2-user/data/User/settings.json
 cp /home/ec2-user/tech-interview/config/whiteboard.drawio /home/ec2-user/workspace/whiteboard.drawio
 
