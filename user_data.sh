@@ -16,7 +16,7 @@ echo "Starting VS Code and SWAG" >> /var/log/passage.log
 mkdir -p /home/ec2-user/letsencrypt/nginx/proxy-confs/
 sed -i "s/code/1234/g" /home/ec2-user/tech-interview/config/code.subdomain.conf
 sed -i "s/192.168.1.1/$internal_ip/g" /home/ec2-user/tech-interview/config/code.subdomain.conf
-echo " - Waiting on UI healthcheck" >> /var/log/passage.log
+echo " - Waiting on UI healthcheck (usually takes a few minutes)" >> /var/log/passage.log
 
 # Install docker and SWAG (lets encypt and nginx proxy)
 cp /home/ec2-user/tech-interview/config/code.subdomain.conf /home/ec2-user/letsencrypt/nginx/proxy-confs/code.subdomain.conf

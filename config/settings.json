@@ -1,5 +1,13 @@
 {
     "window.menuBarVisibility": "classic",
     "workbench.colorTheme": "Monokai",
-    "workbench.startupEditor": "none"
+    "workbench.startupEditor": "none",
+    "liveshare.allowGuestTaskControl": true,
+    "liveshare.allowGuestDebugControl": true,
+    "liveshare.nameTagVisibility": "Always",
+    "liveshare.notebooks.allowGuestExecuteCells": true,
+    "liveshare.publishWorkspaceInfo": true,
+    "workbench.editorAssociations": {
+        "*.md": "vscode.markdown.preview.editor",
+    }
 }
