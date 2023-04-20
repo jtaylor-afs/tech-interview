@@ -17,7 +17,7 @@ Usage: $cli_name [command]
 Flags:
   -s, --secure          (true/false) Use TLS (letsencrypt) or clear text (http only)
                         Skips domain, subdomain, route53 options if false (default: true)
-                        See https://github.com/jtaylor-afs/tech-interview/docs/insecure.md for limitations
+                        See https://github.com/jtaylor-afs/tech-interview/blob/main/docs/insecure.md for limitations
   -d, --domain          Specify Domain - must be registered in AWS account
   -sd, --subdomain      Specifies a subdomain (optional: default random 4 digit)
   -p, --password        Password for VS Code access (optional: uses default)
