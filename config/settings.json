@@ -2,9 +2,9 @@
     "window.menuBarVisibility": "classic",
     "workbench.colorTheme": "Monokai",
     "workbench.startupEditor": "none",
+    "redhat.telemetry.enabled": false,
+    "workbench.editor.enablePreviewFromQuickOpen": true,
     "workbench.editorAssociations": {
-        "viewType": "vscode.markdown.preview.editor",
-        "filenamePattern": "*.md"
-    },
-    "redhat.telemetry.enabled": false
+        "*.md": "vscode.markdown.preview.editor"
+    }
 }
