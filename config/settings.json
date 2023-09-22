@@ -3,7 +3,8 @@
     "workbench.colorTheme": "Monokai",
     "workbench.startupEditor": "none",
     "workbench.editorAssociations": {
-        "*.md": "vscode.markdown.preview.editor"
+        "viewType": "vscode.markdown.preview.editor",
+        "filenamePattern": "*.md"
     },
     "redhat.telemetry.enabled": false
 }
